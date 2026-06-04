@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Docker Message Board — Lab 6</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 { font-size: 1.4rem; color: #58a6ff; }
+    header p  { color: #8b949e; font-size: 0.85rem; }
+
+    .status-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .status-dot.ok     { background: #3fb950; }
+    .status-dot.error  { background: #f85149; }
+
+    .main { max-width: 740px; margin: 0 auto; padding: 24px; }
+
+    .arch-banner {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      font-size: 0.82rem;
+      color: #8b949e;
+      line-height: 1.7;
+    }
+    .arch-banner strong { color: #58a6ff; }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .stat {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+    }
+    .stat .n { font-size: 2rem; font-weight: 700; color: #58a6ff; }
+    .stat .l { font-size: 0.78rem; color: #8b949e; margin-top: 4px; }
+
+    .compose-box {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+    .compose-box h2 { font-size: 0.95rem; color: #58a6ff; margin-bottom: 12px; }
+
+    .compose-box input,
+    .compose-box textarea {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #e6edf3;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+      resize: vertical;
+    }
+
+    .compose-box input:focus,
+    .compose-box textarea:focus {
+      outline: none;
+      border-color: #58a6ff;
+    }
+
+    .post-btn {
+      background: #1f6feb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .post-btn:hover { background: #388bfd; }
+    .post-btn:disabled { background: #21262d; color: #555; cursor: default; }
+
+    .feed { list-style: none; }
+
+    .msg-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 10px;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+    .msg-card:hover { border-color: #58a6ff; }
+
+    .msg-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .msg-author { font-weight: 600; color: #58a6ff; font-size: 0.9rem; }
+    .msg-time   { color: #8b949e; font-size: 0.78rem; }
+    .msg-text   { color: #e6edf3; line-height: 1.5; font-size: 0.92rem; }
+    .msg-id     { color: #30363d; font-size: 0.72rem; margin-top: 8px; }
+
+    .del-btn {
+      background: transparent;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      color: #8b949e;
+      padding: 3px 8px;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+    .del-btn:hover { border-color: #f85149; color: #f85149; }
+
+    .empty { text-align: center; color: #8b949e; padding: 32px; }
+
+    .error-banner {
+      background: #3d1c1c;
+      border: 1px solid #f85149;
+      border-radius: 6px;
+      padding: 10px 16px;
+      color: #f85149;
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .footer { text-align: center; color: #30363d; font-size: 0.78rem; padding: 32px 0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🐳 Docker Message Board</h1>
+    <p>Lab 6 — All Together: Compose + Volumes + Networks + Env Vars</p>
+  </div>
+  <div style="text-align:right;font-size:0.82rem;color:#8b949e">
+    <span class="status-dot ok" id="status-dot"></span>
+    <span id="status-text">Connecting...</span>
+  </div>
+</header>
+
+<div class="main">
+
+  <div class="arch-banner">
+    <strong>Stack:</strong>
+    nginx (frontend) →
+    <strong>Flask API</strong> (backend, port 5000) →
+    <strong>Redis</strong> (storage, named volume) ←
+    <strong>Worker</strong> (background queue processor)
+    &nbsp;|&nbsp; Networks: <strong>frontend-net</strong> + <strong>backend-net</strong>
+  </div>
+
+  <div id="error-banner" class="error-banner"></div>
+
+  <div class="stats-row">
+    <div class="stat"><div class="n" id="s-total">—</div><div class="l">Messages</div></div>
+    <div class="stat"><div class="n" id="s-queue">—</div><div class="l">Pending Queue</div></div>
+    <div class="stat"><div class="n" id="s-env">—</div><div class="l">Environment</div></div>
+  </div>
+
+  <div class="compose-box">
+    <h2>✏️ Post a Message</h2>
+    <input  id="author-input"  type="text"  placeholder="Your name (optional)" maxlength="50" />
+    <textarea id="msg-input"   rows="3"     placeholder="Write a message..."></textarea>
+    <button class="post-btn" id="post-btn" onclick="postMessage()">Post</button>
+  </div>
+
+  <ul class="feed" id="feed"></ul>
+
+  <div class="footer">
+    Backend: <code id="backend-host">localhost:5000</code> &nbsp;|&nbsp;
+    Lab 6 — Docker Compose full-stack demo
+  </div>
+
+</div>
+
+<script>
+const API = "http://localhost:5000";
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(API + path, {
+    headers: { "Content-Type": "application/json", ...opts.headers },
+    ...opts
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+function showError(msg) {
+  const el = document.getElementById("error-banner");
+  el.textContent = "⚠️ " + msg;
+  el.style.display = "block";
+  setTimeout(() => { el.style.display = "none"; }, 6000);
+}
+
+function setStatus(ok, text) {
+  document.getElementById("status-dot").className = "status-dot " + (ok ? "ok" : "error");
+  document.getElementById("status-text").textContent = text;
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function relativeTime(iso) {
+  const diff = (Date.now() - new Date(iso)) / 1000;
+  if (diff < 60)   return `${Math.floor(diff)}s ago`;
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  return new Date(iso).toLocaleTimeString();
+}
+
+async function loadMessages() {
+  try {
+    const data = await apiFetch("/api/messages");
+    const feed = document.getElementById("feed");
+    if (!data.messages.length) {
+      feed.innerHTML = '<li class="empty">No messages yet. Be the first to post! 👋</li>';
+    } else {
+      feed.innerHTML = data.messages.map(m => `
+        <li class="msg-card">
+          <div class="msg-header">
+            <span class="msg-author">@${esc(m.author)}</span>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="msg-time">${relativeTime(m.timestamp)}</span>
+              <button class="del-btn" onclick="deleteMessage('${m.id}')">✕</button>
+            </div>
+          </div>
+          <div class="msg-text">${esc(m.text)}</div>
+          <div class="msg-id">ID: ${m.id}</div>
+        </li>
+      `).join("");
+    }
+    setStatus(true, `Connected · ${data.count} message${data.count !== 1 ? "s" : ""}`);
+    document.getElementById("error-banner").style.display = "none";
+  } catch (e) {
+    setStatus(false, "Backend unreachable");
+    showError("Cannot reach backend at " + API + " — is 'docker compose up' running?");
+  }
+}
+
+async function loadStats() {
+  try {
+    const s = await apiFetch("/api/stats");
+    document.getElementById("s-total").textContent = s.total_messages;
+    document.getElementById("s-queue").textContent = s.pending_queue;
+    document.getElementById("s-env").textContent   = s.environment || "—";
+  } catch (_) {}
+}
+
+async function postMessage() {
+  const text   = document.getElementById("msg-input").value.trim();
+  const author = document.getElementById("author-input").value.trim() || "Anonymous";
+  if (!text) return;
+
+  const btn = document.getElementById("post-btn");
+  btn.disabled = true;
+  btn.textContent = "Posting...";
+
+  try {
+    await apiFetch("/api/messages", {
+      method: "POST",
+      body: JSON.stringify({ text, author })
+    });
+    document.getElementById("msg-input").value = "";
+    await loadMessages();
+    await loadStats();
+  } catch (e) {
+    showError("Post failed: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Post";
+  }
+}
+
+async function deleteMessage(id) {
+  try {
+    await apiFetch(`/api/messages/${id}`, { method: "DELETE" });
+    await loadMessages();
+    await loadStats();
+  } catch (e) {
+    showError("Delete failed: " + e.message);
+  }
+}
+
+document.getElementById("msg-input").addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.ctrlKey) postMessage();
+});
+
+loadMessages();
+loadStats();
+setInterval(() => { loadMessages(); loadStats(); }, 5000);
+</script>
+</body>
+</html>

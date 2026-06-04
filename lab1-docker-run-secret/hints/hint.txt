@@ -1,0 +1,18 @@
+╔══════════════════════════════════════════════════════╗
+║              🗺  HUNT HINTS                          ║
+╠══════════════════════════════════════════════════════╣
+║                                                      ║
+║  CLUE 1 (Python script hints):                       ║
+║  - Q1: "docker ___"  (shows container list)          ║
+║  - Q2: Two dashes + "rm" — auto-removes on exit      ║
+║  - Q3: "docker ___  -it container bash"              ║
+║                                                      ║
+║  CLUE 2 (JavaScript trivia hints):                   ║
+║  - Q1: The file that guides Docker to build images   ║
+║  - Q2: First word in every Dockerfile                ║
+║  - Q3: docker ___ <name>  (prints container output)  ║
+║                                                      ║
+║  Still stuck?  cat /hints/secret.txt                 ║
+║  (But where's the fun in that? 😄)                   ║
+║                                                      ║
+╚══════════════════════════════════════════════════════╝

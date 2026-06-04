@@ -1,0 +1,96 @@
+# ============================================================
+# Lab 6 — docker-compose.yml
+# All Docker concepts combined: images, volumes, networks, env vars
+# ============================================================
+
+services:
+
+  # ── SERVICE 1: Frontend ──────────────────────────────────
+  # Serves static HTML/JS via nginx
+  # Connected to: frontend-network only (no direct Redis access)
+  frontend:
+    build: ./frontend                    # Lab 2: custom Dockerfile
+    container_name: lab6-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"      # Lab 1: port mapping
+    networks:
+      - frontend-network                 # Lab 4: isolated network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # ── SERVICE 2: Backend API ───────────────────────────────
+  # Python Flask REST API
+  # Connected to BOTH networks — bridges frontend ↔ backend
+  backend:
+    build: ./backend
+    container_name: lab6-backend
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    environment:                          # Lab 5: env variables
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - APP_NAME=${APP_NAME:-Docker Message Board}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - PORT=5000
+    networks:
+      - frontend-network                 # reachable from frontend
+      - backend-network                  # can reach redis & worker
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # ── SERVICE 3: Redis ─────────────────────────────────────
+  # Pulled directly from Docker Hub — no build needed
+  # Stores messages and the worker queue
+  redis:
+    image: redis:7-alpine                # Lab 1: pulling from Docker Hub
+    container_name: lab6-redis
+    ports:
+      - "6379:6379"                      # expose for inspection with redis-cli
+    volumes:
+      - redis-data:/data                 # Lab 3: named volume — data persists!
+    networks:
+      - backend-network                  # NOT on frontend-network
+    restart: unless-stopped
+
+  # ── SERVICE 4: Worker ────────────────────────────────────
+  # Background Python script that polls the Redis queue
+  # No exposed ports — purely internal service
+  worker:
+    build: ./worker
+    container_name: lab6-worker
+    environment:
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - WORKER_ID=${WORKER_ID:-worker-1}
+      - PROCESS_INTERVAL=${PROCESS_INTERVAL:-5}
+      - LOG_PATH=${LOG_PATH:-/logs/worker.log}
+    volumes:
+      - worker-logs:/logs                # Lab 3: named volume for log files
+    networks:
+      - backend-network                  # only needs Redis access
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+# ── NETWORKS ─────────────────────────────────────────────
+# Lab 4: Two isolated networks
+# frontend-network: frontend ↔ backend communication
+# backend-network:  backend ↔ redis ↔ worker communication
+# The frontend CANNOT directly reach Redis or the worker!
+networks:
+  frontend-network:
+    driver: bridge
+  backend-network:
+    driver: bridge
+
+# ── VOLUMES ──────────────────────────────────────────────
+# Lab 3: Named volumes — Docker manages the storage location
+# Data persists even after "docker compose down"
+# Only destroyed by "docker compose down -v"
+volumes:
+  redis-data:
+    driver: local
+  worker-logs:
+    driver: local
