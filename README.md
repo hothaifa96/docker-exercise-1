@@ -1,4 +1,4 @@
-# 🐳 Docker Labs — Complete Learning Path
+# 🐳 Docker Labs — class lab
 
 6 hands-on labs that take you from zero to full-stack Docker proficiency.  
 Each lab builds on the previous one. Work through them in order!
@@ -55,16 +55,3 @@ docker system prune -f
 ```
 
 ---
-
-## 🗺 Learning Path
-
-```
-Lab 1 → Learn docker run basics + container lifecycle
-Lab 2 → Write your first Dockerfiles (3 languages)
-Lab 3 → Add persistence with volumes
-Lab 4 → Connect containers over a network
-Lab 5 → Configure containers with environment variables
-Lab 6 → Combine everything with Docker Compose
-```
-
-> 💡 Every lab has **Exercises** and **Bonus Challenges** at the end.
