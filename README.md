@@ -1,88 +1,111 @@
-# XO Game - Tic Tac Toe
+# NotesApp – Docker Practice Lab
 
-A full-stack Tic Tac Toe game built with React, Flask, and PostgreSQL.
+A full-stack Notes application built for **DevOps students** to practice:
+- Building Docker images from Dockerfiles
+- Running containers manually with `docker build` & `docker run`
+- Passing environment variables to containers
+- Connecting multiple containers via a shared Docker network
+
+---
 
 ## Architecture
 
-- **Frontend**: React 18 (port 3000)
-- **Backend**: Python Flask (port 5000)
-- **Database**: PostgreSQL 15 (port 5432)
-
-## Quick Start with Docker
-
-```bash
-# Build and start all services
-docker-compose up --build
-
-# Access the application
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:5000
 ```
+┌─────────────────┐     HTTP      ┌──────────────────┐     SQL      ┌─────────────┐
+│  Frontend        │ ──────────► │   Backend (Flask) │ ──────────► │  MySQL DB   │
+│  React + Nginx   │             │   Python 3.11     │             │  MySQL 8    │
+│  port: 3000      │             │   port: 5000      │             │  port: 3306 │
+└─────────────────┘             └──────────────────┘             └─────────────┘
+```
+
+---
+
+## 🎯 Your Task
+
+You must run the entire app using **only `docker build` and `docker run` commands**.  
+No `docker-compose`. No shortcuts. Read the instructions carefully.
+
+---
 
 ## Project Structure
 
 ```
 .
-├── backend/           # Flask API
-│   ├── app.py        # Main application
-│   ├── Dockerfile    # Backend container
-│   └── requirements.txt
-├── frontend/         # React app
-│   ├── src/          # React source code
-│   ├── public/       # Static assets
-│   ├── Dockerfile    # Frontend container
-│   └── nginx.conf    # Nginx configuration
-├── database/         # Database scripts
-│   └── init.sql      # Schema initialization
-├── docker-compose.yml
-└── .env.example      # Environment template
+├── backend/
+│   ├── app.py              # Flask API (CRUD + search)
+│   ├── requirements.txt
+│   └── Dockerfile          # ← Study this!
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   └── Dockerfile          # ← Study this!
+├── db/
+│   └── init.sql            # DB schema (auto-applied by MySQL image)
+├── .env.example            # ← ENV variables you need to find
+└── README.md
 ```
 
-## API Endpoints
+---
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Health check |
-| POST | `/api/games` | Create new game |
-| GET | `/api/games` | List all games |
-| GET | `/api/games/<id>` | Get game by ID |
-| POST | `/api/games/<id>/move` | Make a move (position: 0-8) |
-| DELETE | `/api/games/<id>` | Delete game |
+##  Step 1 – Find the Environment Variables
 
-## Development Setup (without Docker)
+Open `.env.example`. It lists all `???` variables you need to supply.  
+You must decide the values yourself. Fill them in before proceeding.
 
-### Backend
+**Questions to answer:**
+- What `DB_HOST` should the backend use to reach MySQL when both run in the same Docker network?
+- What should `REACT_APP_API_URL` be so the browser can reach the backend?
+
+---
+
+##  Step 2 – Create a Docker Network
+
+All containers must communicate. Create a shared bridge network:##  Step 3 – Run MySQL
+
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python app.py
+docker run -d \
+  --name notes-db \
+  --network  \
+  -e  \
+  -e  \
+  -e  \
+  -e  \
+  -v  \
+  -p 3306:3306 \
+  mysql:8
 ```
 
-### Frontend
+> **Hint:** The container name you use with `--name` is the hostname other containers can use to reach it.
+
+Wait ~15 seconds for MySQL to initialize before the next step.
+
+---
+
+##  Step 4 – Build & Run the Backend
 ```bash
-cd frontend
-npm install
-npm start
+curl http://localhost:5000/health
+# Expected: {"status": "ok"}
 ```
 
-### Database
+---
+
+## Step 5 – Build & Run the Frontend
+
+The `REACT_APP_API_URL` is baked into the image at **build time** (not runtime).  
+You must pass it as a **build argument**.
+
+**Build:**
 ```bash
-# Requires PostgreSQL running locally
-createdb xogame
-psql xogame < database/init.sql
+docker build \
+  --build-arg REACT_APP_API_URL=<???> \
+  -t notes-frontend \
+  ./frontend
 ```
 
-## Environment Variables
+> 💡 **Hint:** The browser (your laptop) makes requests to the backend. `localhost:5000` is exposed from Step 4.
 
-Copy `.env.example` to `.env` and customize:
 
-```env
-DB_HOST=localhost
-DB_NAME=xogame
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_PORT=5432
-REACT_APP_API_URL=http://localhost:5000
-```
+Open your browser at: **http://localhost:port**
+
+---
