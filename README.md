@@ -1,111 +1,48 @@
-# NotesApp – Docker Practice Lab
+# Lab 1 — Docker Run & The 
+> **Goal:** Discover the secret word hidden inside the container.  
+> It is split into **two clues**. You need BOTH to assemble the secret word.
 
-A full-stack Notes application built for **DevOps students** to practice:
-- Building Docker images from Dockerfiles
-- Running containers manually with `docker build` & `docker run`
-- Passing environment variables to containers
-- Connecting multiple containers via a shared Docker network
-
----
-
-## Architecture
-
-```
-┌─────────────────┐     HTTP      ┌──────────────────┐     SQL      ┌─────────────┐
-│  Frontend        │ ──────────► │   Backend (Flask) │ ──────────► │  MySQL DB   │
-│  React + Nginx   │             │   Python 3.11     │             │  MySQL 8    │
-│  port: 3000      │             │   port: 5000      │             │  port: 3306 │
-└─────────────────┘             └──────────────────┘             └─────────────┘
-```
-
----
-
-## 🎯 Your Task
-
-You must run the entire app using **only `docker build` and `docker run` commands**.  
-No `docker-compose`. No shortcuts. Read the instructions carefully.
-
----
-
-## Project Structure
-
-```
-.
-├── backend/
-│   ├── app.py              # Flask API (CRUD + search)
-│   ├── requirements.txt
-│   └── Dockerfile          # ← Study this!
-├── frontend/
-│   ├── src/
-│   ├── public/
-│   ├── package.json
-│   └── Dockerfile          # ← Study this!
-├── db/
-│   └── init.sql            # DB schema (auto-applied by MySQL image)
-├── .env.example            # ← ENV variables you need to find
-└── README.md
-```
-
----
-
-##  Step 1 – Find the Environment Variables
-
-Open `.env.example`. It lists all `???` variables you need to supply.  
-You must decide the values yourself. Fill them in before proceeding.
-
-**Questions to answer:**
-- What `DB_HOST` should the backend use to reach MySQL when both run in the same Docker network?
-- What should `REACT_APP_API_URL` be so the browser can reach the backend?
-
----
-
-##  Step 2 – Create a Docker Network
-
-All containers must communicate. Create a shared bridge network:##  Step 3 – Run MySQL
+### Step 3.1 — Start the hunt container in detached mode
 
 ```bash
-docker run -d \
-  --name notes-db \
-  --network  \
-  -e  \
-  -e  \
-  -e  \
-  -e  \
-  -v  \
-  -p 3306:3306 \
-  mysql:8
+docker run --rm -d --name hunt hothaifaz11/try-me
+
+# Confirm it is running
+docker ps
 ```
 
-> **Hint:** The container name you use with `--name` is the hostname other containers can use to reach it.
+### Step 3.2 — Enter the container
 
-Wait ~15 seconds for MySQL to initialize before the next step.
-
----
-
-##  Step 4 – Build & Run the Backend
 ```bash
-curl http://localhost:5000/health
-# Expected: {"status": "ok"}
-```
+docker exec -it ....
 
----
+# Look around — what files are inside?
 
-## Step 5 – Build & Run the Frontend
+### Step 3.3 — Get CLUE 1 (Python Challenge)
 
-The `REACT_APP_API_URL` is baked into the image at **build time** (not runtime).  
-You must pass it as a **build argument**.
+run it ?
 
-**Build:**
+Answer the 3 Docker trivia questions correctly to reveal **CLUE 1**.
+
+> ⚠️ You need a **perfect score (3/3)** to get the clue!
+
+### Step 3.4 — Get CLUE 2 (JavaScript Trivia)
+
 ```bash
-docker build \
-  --build-arg REACT_APP_API_URL=<???> \
-  -t notes-frontend \
-  ./frontend
+# Still inside the container:
+node ....
 ```
 
-> 💡 **Hint:** The browser (your laptop) makes requests to the backend. `localhost:5000` is exposed from Step 4.
+Answer all 3 JavaScript trivia questions about Docker correctly to get **CLUE 2**.
 
+### Step 3.5 — Reveal the secret word
 
-Open your browser at: **http://localhost:port**
+Once you have both clues, combine them to form the secret word.  
+Then confirm by running:
 
----
+```bash
+# Still inside the container:
+/hints/secret.txt
+```
+
+> 🎉 You found the secret word!
